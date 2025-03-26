@@ -42,6 +42,12 @@ let gridColor;
 let textColor;
 let shadowColor; // For a subtle drop shadow effect
 
+// --- Particle System for Confetti ---
+let particles = [];
+const gravity = 0.08; // Affects how fast particles fall
+const initialConfettiCount = 25; // Particles per standard line clear
+const levelUpConfettiCount = 60; // Particles for a level-up line clear
+
 // --- Tetromino Shapes ---
 // Defined by [rotation][row][col] relative to anchor point
 // Anchor point is usually top-leftish
@@ -143,6 +149,8 @@ function draw() {
         // Draw UI elements (Score, Level, Next Piece)
         drawUI();
     }
+  
+  updateAndDrawParticles();
 }
 
 // --- Input Handling ---
@@ -321,7 +329,9 @@ function lockPiece() {
 
 
 function clearLines() {
-    let linesCleared = 0;
+    let linesClearedThisTurn = 0;
+    let clearedRowIndices = []; // Store indices of cleared rows
+
     for (let r = ROWS - 1; r >= 0; r--) {
         let isLineFull = true;
         for (let c = 0; c < COLS; c++) {
@@ -332,40 +342,127 @@ function clearLines() {
         }
 
         if (isLineFull) {
-            linesCleared++;
+            linesClearedThisTurn++;
+            clearedRowIndices.push(r); // Store the index *before* shifting
+
             // Remove the full line by moving all lines above it down
-             for (let rowAbove = r; rowAbove > 0; rowAbove--) {
-                 grid[rowAbove] = grid[rowAbove - 1].slice(); // Copy the row above
-             }
-             // Clear the top line
-             grid[0] = Array(COLS).fill(0);
+            for (let rowAbove = r; rowAbove > 0; rowAbove--) {
+                grid[rowAbove] = grid[rowAbove - 1].slice(); // Copy the row above
+            }
+            // Clear the top line
+            grid[0] = Array(COLS).fill(0);
 
             // Since we shifted lines down, we need to re-check the same row index again
             r++;
         }
     }
 
-    // Update Score based on lines cleared at once
-    if (linesCleared > 0) {
+    // --- Scoring, Level Up, and Confetti Trigger ---
+    if (linesClearedThisTurn > 0) {
+        // 1. Update Score
         let basePoints = [0, 100, 300, 500, 800]; // Points for 1, 2, 3, 4 lines
-        score += basePoints[linesCleared] * level;
-        linesClearedTotal += linesCleared;
-        print(linesCleared, "Line(s) Cleared! Total:", linesClearedTotal, "Score:", score);
+        score += basePoints[linesClearedThisTurn] * level;
 
+        let previousTotalLines = linesClearedTotal;
+        linesClearedTotal += linesClearedThisTurn;
+        print(linesClearedThisTurn, "Line(s) Cleared! Total:", linesClearedTotal, "Score:", score);
 
-        // Check for level increase
-        // Simplified: level increases every 'levelIncreaseThreshold' lines exactly
-        let nextLevelThreshold = level * levelIncreaseThreshold;
-        if (linesClearedTotal >= nextLevelThreshold) {
-            level++;
-            // Increase speed (decrease interval), but cap it
-            fallInterval = max(100, fallInterval * 0.85); // Make it 15% faster, minimum 100ms
-            print("Level Up! Level:", level, "Speed:", fallInterval.toFixed(2));
+        // 2. Check for Level Up (and if it happened *now*)
+        let didLevelUp = false;
+        let previousLevel = level;
+        let requiredForNextLevel = level * levelIncreaseThreshold; // Lines needed for current level's threshold
+
+        // Check if the *new* total crosses the threshold for the *current* level
+        if (linesClearedTotal >= requiredForNextLevel && previousTotalLines < requiredForNextLevel) {
+             didLevelUp = true;
+             level++; // Increase level
+             // Recalculate fall interval based on the *new* level
+             fallInterval = max(100, 800 * pow(0.85, level - 1)); // Exponential decrease, base 800ms
+             print("✨ LEVEL UP! ✨ Level:", level, "Speed:", fallInterval.toFixed(0) + 'ms');
+        }
+
+        // 3. Create Confetti!
+        for (let clearedIndex of clearedRowIndices) {
+            // Calculate the Y position based on the row index *before* it might have shifted down
+            let rowPixelY = PADDING + clearedIndex * (BLOCK_SIZE + PADDING) + BLOCK_SIZE / 2;
+            let count = didLevelUp ? levelUpConfettiCount : initialConfettiCount;
+            let intensity = didLevelUp ? 1.6 : 1.0; // More energetic for level up
+
+            // Optional: Use colors from the cleared line? More complex.
+            // For now, just use the global pastel colors.
+            createConfetti(rowPixelY, count, intensity, colors);
         }
     }
 }
 
 // --- Drawing Functions ---
+
+/**
+ * Creates confetti particles originating from a specific Y position.
+ * @param {number} rowPixelY The center Y coordinate of the cleared row.
+ * @param {number} count How many particles to create.
+ * @param {number} intensity Multiplier for initial velocity and maybe lifetime.
+ * @param {p5.Color[]} possibleColors Array of colors to choose from.
+ */
+function createConfetti(rowPixelY, count, intensity, possibleColors) {
+    let gridWidth = COLS * (BLOCK_SIZE + PADDING);
+    for (let i = 0; i < count; i++) {
+        let particle = {
+            x: random(PADDING, PADDING + gridWidth), // Start spread across the row
+            y: rowPixelY + random(-BLOCK_SIZE / 2, BLOCK_SIZE / 2),
+            vx: random(-1.5 * intensity, 1.5 * intensity), // Horizontal velocity
+            vy: random(-2.5 * intensity, -0.5 * intensity), // Initial upward velocity
+            color: random(possibleColors), // Pick a random pastel color
+            size: random(4, 8) * intensity,
+            life: random(60, 120) * intensity, // Frames to live
+            alpha: 255,
+            angle: random(TWO_PI),
+            angleSpeed: random(-0.1, 0.1)
+        };
+        particles.push(particle);
+    }
+}
+
+/**
+ * Updates physics and draws all active particles.
+ * Removes particles whose lifetime has expired.
+ */
+function updateAndDrawParticles() {
+    // Loop backwards for safe removal
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+
+        // Update physics
+        p.vy += gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.angle += p.angleSpeed;
+        p.life--;
+
+        // Calculate fading
+        p.alpha = map(p.life, 0, 60, 0, 255); // Fade out in the last 60 frames
+        p.alpha = constrain(p.alpha, 0, 255);
+
+        // Remove if dead
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        } else {
+            // Draw the particle
+            push(); // Isolate drawing state
+            translate(p.x, p.y);
+            rotate(p.angle);
+            noStroke();
+            // Make a copy of the color to set alpha without modifying original
+            let particleDrawColor = color(red(p.color), green(p.color), blue(p.color), p.alpha);
+            fill(particleDrawColor);
+            // Draw slightly rounded rects for a cute confetti look
+            rectMode(CENTER); // Draw from center for rotation
+            rect(0, 0, p.size, p.size, p.size * 0.2); // Small corner radius
+            pop(); // Restore drawing state
+        }
+    }
+    rectMode(CORNER); // Reset rect mode IMPORTANT!
+}
 
 function drawGridBackground() {
     let gridWidth = COLS * BLOCK_SIZE + PADDING * (COLS - 1);
