@@ -1,9 +1,10 @@
 // --- Message from mbdr-byte@ ---
 // A cute tetris game you can play in https://editor.p5js.org/.
 //
-// This was created with Gemini 2.5 Pro Experimental 03-25 in 2 messages.
+// This was created with Gemini 2.5 Pro Experimental 03-25 in 3 messages.
 // 1st message: ask for a cute tetris game for p5js.
 // 2nd message: fix the compile errors that p5js found.
+// 3rd message: add confetti to celebrate row clearing, and extra confetti to celebrate level up.
 //
 // I did not edit the code below the message.
 // --- OEM from mbdr-byte@ ---
