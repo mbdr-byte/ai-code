@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Investment Plans</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        /* Apply light gray background to body */
+        body {
+             background-color: #f9fafb; /* Tailwind gray-50 */
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        /* Style for the input boxes - solid white background */
+        .plan-box {
+            background-color: #ffffff; /* Solid white */
+            /* backdrop-filter removed */
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Softer shadow */
+            transition: box-shadow 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .plan-box:hover {
+             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08); /* Slightly stronger hover shadow */
+        }
+        /* Custom focus ring color */
+        input:focus, select:focus {
+            --tw-ring-color: hsl(160, 50%, 50%);
+            border-color: hsl(160, 50%, 50%);
+            box-shadow: 0 0 0 2px var(--tw-ring-color);
+            outline: none;
+        }
+        /* Chart container - solid white background */
+        #chartContainerWrapper {
+             background-color: #ffffff; /* Solid white */
+             /* backdrop-filter removed */
+             border-radius: 0.75rem;
+             padding: 1.5rem;
+             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Softer shadow */
+             margin-top: 2rem;
+        }
+        /* Ensure chart is responsive */
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        /* Style H1 Title with Gradient Text */
+        h1 {
+            /* Fallback color */
+            color: hsl(160, 50%, 40%);
+             /* Gradient background */
+             background: linear-gradient(to bottom right, hsl(80, 80%, 75%), hsl(160, 60%, 50%)); /* Adjusted gradient slightly */
+             /* Clip background to text */
+            -webkit-background-clip: text;
+            background-clip: text;
+             /* Make text transparent to show background */
+            color: transparent;
+             /* Ensure background is sized correctly */
+             background-size: 100%;
+             /* Keep other styles */
+             font-size: 2.25rem; /* text-3xl */
+             line-height: 2.5rem;
+             font-weight: 700; /* font-bold */
+             text-align: center;
+             margin-bottom: 2rem; /* mb-8 */
+
+             /* Add display: inline-block if needed for clipping to work correctly, depends on context */
+             /* display: inline-block; */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+             h1 {
+                font-size: 2.875rem; /* text-4xl */
+                line-height: 1;
+             }
+        }
+
+        /* Style for editable plan name input */
+        .plan-name-input {
+            font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem;
+            text-align: center; width: 100%; border: none; padding: 0;
+            background-color: transparent; border-radius: 0.375rem;
+            transition: background-color 0.2s ease-in-out;
+            color: #374151; /* gray-700 */
+        }
+        .plan-name-input:focus {
+            background-color: rgba(0, 0, 0, 0.05); box-shadow: none; outline: none;
+        }
+        label {
+             color: #374151; /* gray-700 */
+             margin-bottom: 0.25rem; display: block;
+             font-size: 0.875rem; font-weight: 500;
+        }
+        /* Input/Select base styles */
+        .form-input, .form-select {
+            width: 100%; border-radius: 0.375rem; border: 1px solid #d1d5db; /* gray-300 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        /* Disclaimer text style */
+        .disclaimer {
+            color: #6b7280; /* gray-500 */
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-8">Investment Amount Comparison</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="plan-box" id="plan1Container">
+                 <input type="text" id="planName1" value="Plan 1" class="plan-name-input">
+                <div class="space-y-4 flex-grow">
+                     <div>
+                        <label for="startAmount1">Starting Amount ($)</label>
+                        <input type="number" id="startAmount1" value="1000" min="0" step="100" class="form-input">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-end">
+                        <div>
+                             <label for="additionalAmount1">Additional Amount ($)</label>
+                             <input type="number" id="additionalAmount1" value="100" min="0" step="10" class="form-input">
+                        </div>
+                        <div>
+                            <label for="frequency1">Frequency</label>
+                            <select id="frequency1" class="form-select">
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly" selected>Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                        </div>
+                    </div>
+                     <div class="grid grid-cols-2 gap-4 items-end">
+                         <div>
+                             <label for="startingAge1">Starting Age</label>
+                             <input type="number" id="startingAge1" value="30" min="0" max="120" step="1" class="form-input">
+                         </div>
+                         <div>
+                             <label for="retirementAge1">Retirement Age</label>
+                             <input type="number" id="retirementAge1" value="65" min="1" max="120" step="1" class="form-input">
+                         </div>
+                    </div>
+                     <div>
+                        <label for="returnRate1">Expected Annual Return (%)</label>
+                        <input type="number" id="returnRate1" value="8.0" min="-50" max="100" step="0.1" class="form-input">
+                    </div>
+                     <p class="text-xs text-gray-500 mt-2 italic">
+                        Note: Projections use daily compounding. Contributions are added as lump sums based on selected frequency (start of week/month/year).
+                     </p>
+                </div>
+            </div>
+
+            <div class="plan-box" id="plan2Container">
+                 <input type="text" id="planName2" value="Plan 2" class="plan-name-input">
+                 <div class="space-y-4 flex-grow">
+                     <div>
+                        <label for="startAmount2">Starting Amount ($)</label>
+                        <input type="number" id="startAmount2" value="1000" min="0" step="100" class="form-input">
+                    </div>
+                     <div class="grid grid-cols-2 gap-4 items-end">
+                         <div>
+                            <label for="additionalAmount2">Additional Amount ($)</label>
+                            <input type="number" id="additionalAmount2" value="50" min="0" step="10" class="form-input">
+                         </div>
+                         <div>
+                             <label for="frequency2">Frequency</label>
+                            <select id="frequency2" class="form-select">
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly" selected>Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                         </div>
+                    </div>
+                     <div class="grid grid-cols-2 gap-4 items-end">
+                          <div>
+                             <label for="startingAge2">Starting Age</label>
+                             <input type="number" id="startingAge2" value="35" min="0" max="120" step="1" class="form-input">
+                         </div>
+                          <div>
+                             <label for="retirementAge2">Retirement Age</label>
+                             <input type="number" id="retirementAge2" value="70" min="1" max="120" step="1" class="form-input">
+                         </div>
+                    </div>
+                     <div>
+                        <label for="returnRate2">Expected Annual Return (%)</label>
+                        <input type="number" id="returnRate2" value="8.0" min="-50" max="100" step="0.1" class="form-input">
+                    </div>
+                     <p class="text-xs text-gray-500 mt-2 italic">
+                         Note: Projections use daily compounding. Contributions are added as lump sums based on selected frequency (start of week/month/year).
+                     </p>
+                 </div>
+            </div>
+        </div>
+
+        <div id="chartContainerWrapper">
+             <canvas id="comparisonChart"></canvas>
+             <p id="chartErrorMessage" class="text-center text-red-600 mt-2 font-medium hidden"></p>
+        </div>
+
+        <p class="disclaimer text-center text-xs mt-8 px-4">
+            Disclaimer: This tool is for illustrative and entertainment purposes only. Projections are based on the inputs provided and do not guarantee future results. This is not financial advice. Consult with a qualified financial advisor before making investment decisions.
+        </p>
+    </div>
+
+    <script type="module">
+        // === Type Definitions ===
+        /** @typedef {'weekly' | 'monthly' | 'yearly'} ContributionFrequency */
+        /**
+         * @typedef {object} PlanParameters
+         * @property {string} name
+         * @property {number} startingAge
+         * @property {number} retirementAge
+         * @property {number} startAmount
+         * @property {number} additionalAmount
+         * @property {ContributionFrequency} frequency
+         * @property {number} returnRate - Annual return rate as a decimal
+         */
+         /** @typedef {number[]} ProjectionResult */
+
+        // === DOM Elements ===
+        const elements = {
+            plan1: {
+                name: document.getElementById('planName1'),
+                startingAge: document.getElementById('startingAge1'),
+                retirementAge: document.getElementById('retirementAge1'),
+                startAmount: document.getElementById('startAmount1'),
+                additionalAmount: document.getElementById('additionalAmount1'),
+                frequency: document.getElementById('frequency1'),
+                returnRate: document.getElementById('returnRate1'),
+            },
+            plan2: {
+                name: document.getElementById('planName2'),
+                startingAge: document.getElementById('startingAge2'),
+                retirementAge: document.getElementById('retirementAge2'),
+                startAmount: document.getElementById('startAmount2'),
+                additionalAmount: document.getElementById('additionalAmount2'),
+                frequency: document.getElementById('frequency2'),
+                returnRate: document.getElementById('returnRate2'),
+            },
+            chartCanvas: document.getElementById('comparisonChart'),
+            chartErrorMessage: document.getElementById('chartErrorMessage'),
+        };
+
+        // === Constants & Global State ===
+        const DAYS_PER_YEAR = 365.25;
+
+        // === Chart Initialization ===
+        /** @type {import('chart.js').Chart | null} */
+        let comparisonChart = null;
+
+        function initializeChart() {
+            if (!elements.chartCanvas) return;
+            const ctx = elements.chartCanvas.getContext('2d');
+            if (!ctx) return;
+            if (comparisonChart) { comparisonChart.destroy(); }
+
+            const plan1Color = 'hsl(160, 70%, 50%)';
+            const plan2Color = 'hsl(80, 60%, 50%)';
+
+            comparisonChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: 'Plan 1', data: [], borderColor: plan1Color, backgroundColor: 'transparent', borderWidth: 2, tension: 0.1, pointRadius: 0, pointHoverRadius: 5 },
+                    { label: 'Plan 2', data: [], borderColor: plan2Color, backgroundColor: 'transparent', borderWidth: 2, borderDash: [5, 5], tension: 0.1, pointRadius: 0, pointHoverRadius: 5 }
+                ]},
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: (value) => '$' + value.toLocaleString() }, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Total Amount' } },
+                        x: { title: { display: true, text: 'Age' }, grid: { display: false } }
+                    },
+                    plugins: {
+                        // Title color is handled by gradient text style now
+                        title: { display: true, text: 'Invested Amount Comparison by Age', font: { size: 18, weight: '600' }, /*color: '#333',*/ padding: { top: 10, bottom: 20 } },
+                        tooltip: {
+                            mode: 'index', intersect: false,
+                            callbacks: {
+                                title: (tooltipItems) => tooltipItems.length > 0 ? `Age ${tooltipItems[0].label}` : '',
+                                label: function(context) {
+                                    if (context.parsed.y !== null) {
+                                        const valueLabel = '$' + context.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                        return `${context.dataset.label}: ${valueLabel}`;
+                                    } return null;
+                                }
+                            }
+                        },
+                        legend: { position: 'bottom', align: 'center', labels: { usePointStyle: true, boxWidth: 20, padding: 20 } }
+                    },
+                    interaction: { mode: 'index', intersect: false, filter: (item) => item.raw !== null },
+                    hover: { mode: 'nearest', intersect: true }
+                }
+            });
+        }
+
+        // === Calculation Logic ===
+        /**
+         * Calculates projected investment values using daily compounding
+         * and periodic lump sum contributions. Returns end-of-year values.
+         */
+        function calculateProjection(params, duration) {
+             if (duration < 0) duration = 0;
+
+            const meanData = [params.startAmount];
+            let currentValue = params.startAmount;
+            const dailyRate = params.returnRate / DAYS_PER_YEAR;
+            const totalDays = Math.round(duration * DAYS_PER_YEAR);
+
+            let nextYearlyContributionDay = DAYS_PER_YEAR;
+            let nextMonthlyContributionDay = DAYS_PER_YEAR / 12;
+            let nextWeeklyContributionDay = 7;
+
+            for (let day = 1; day <= totalDays; day++) {
+                let contributionToday = 0;
+                const tolerance = 0.5; // Tolerance for floating point day comparisons
+
+                if (params.additionalAmount > 0) { // Only add contribution if amount > 0
+                    if (params.frequency === 'yearly' && day >= nextYearlyContributionDay - tolerance) {
+                        contributionToday = params.additionalAmount;
+                        nextYearlyContributionDay += DAYS_PER_YEAR;
+                    } else if (params.frequency === 'monthly' && day >= nextMonthlyContributionDay - tolerance) {
+                        contributionToday = params.additionalAmount;
+                        nextMonthlyContributionDay += DAYS_PER_YEAR / 12;
+                    } else if (params.frequency === 'weekly' && day >= nextWeeklyContributionDay - tolerance) {
+                        contributionToday = params.additionalAmount;
+                        nextWeeklyContributionDay += 7;
+                    }
+                }
+
+                currentValue += contributionToday;
+                currentValue *= (1 + dailyRate);
+
+                // Store end-of-year values
+                const yearIndex = Math.floor(day / DAYS_PER_YEAR);
+                // Check if it's approximately the end of a year or the very last day
+                const isEndOfYear = Math.abs(day - (yearIndex * DAYS_PER_YEAR)) < 1 && yearIndex > 0;
+
+                if ((isEndOfYear || day === totalDays) && yearIndex <= duration) {
+                     if (meanData.length === yearIndex) {
+                          meanData.push(Math.round(currentValue));
+                     } else if (meanData.length > yearIndex) {
+                          meanData[yearIndex] = Math.round(currentValue);
+                     }
+                }
+            }
+
+             // Final checks for array length and final value accuracy
+             while (meanData.length < duration + 1) {
+                 meanData.push(meanData.length > 0 ? meanData[meanData.length - 1] : params.startAmount);
+             }
+             while (meanData.length > duration + 1) {
+                 meanData.pop();
+             }
+             if (duration >= 0 && meanData.length > duration) { // Ensure final value is correct
+                 meanData[duration] = Math.round(currentValue);
+             }
+
+            return meanData;
+        }
+
+
+        // === Update Logic ===
+        /** Reads parameters from the DOM. */
+        function getPlanParameters(planId) {
+            const planElements = elements[planId];
+            const startingAgeVal = parseInt(planElements.startingAge.value, 10) || 0;
+            let retirementAgeVal = parseInt(planElements.retirementAge.value, 10);
+            retirementAgeVal = isNaN(retirementAgeVal) || retirementAgeVal < startingAgeVal ? startingAgeVal : retirementAgeVal;
+
+            return {
+                name: planElements.name.value || `Plan ${planId.slice(-1)}`,
+                startingAge: startingAgeVal,
+                retirementAge: retirementAgeVal,
+                startAmount: parseFloat(planElements.startAmount.value) || 0,
+                additionalAmount: parseFloat(planElements.additionalAmount.value) || 0,
+                frequency: planElements.frequency.value,
+                returnRate: (parseFloat(planElements.returnRate.value) || 0) / 100,
+            };
+        }
+
+        /** Updates the chart based on current inputs. */
+        function updateChart() {
+            if (!comparisonChart) return;
+            elements.chartErrorMessage.classList.add('hidden');
+
+            const params1 = getPlanParameters('plan1');
+            const params2 = getPlanParameters('plan2');
+
+            const minStartingAge = Math.min(params1.startingAge, params2.startingAge);
+            const maxRetirementAge = Math.max(params1.retirementAge, params2.retirementAge);
+
+             if (maxRetirementAge < minStartingAge) {
+                 elements.chartErrorMessage.textContent = "Error: Max retirement age is less than min starting age.";
+                 elements.chartErrorMessage.classList.remove('hidden');
+                 comparisonChart.data.labels = [];
+                 comparisonChart.data.datasets[0].data = [];
+                 comparisonChart.data.datasets[1].data = [];
+                 comparisonChart.update();
+                 return;
+             }
+
+            const duration1 = Math.max(0, params1.retirementAge - params1.startingAge);
+            const duration2 = Math.max(0, params2.retirementAge - params2.startingAge);
+
+            const projection1 = calculateProjection(params1, duration1);
+            const projection2 = calculateProjection(params2, duration2);
+
+            const ageAxisLength = maxRetirementAge - minStartingAge + 1;
+            const finalData1 = Array(ageAxisLength).fill(null);
+            const finalData2 = Array(ageAxisLength).fill(null);
+
+            const startIndex1 = Math.max(0, params1.startingAge - minStartingAge);
+            for (let i = 0; i < projection1.length; i++) {
+                const targetIndex = startIndex1 + i;
+                if (targetIndex < ageAxisLength && (minStartingAge + targetIndex) <= params1.retirementAge) {
+                    finalData1[targetIndex] = projection1[i];
+                }
+            }
+
+            const startIndex2 = Math.max(0, params2.startingAge - minStartingAge);
+             for (let i = 0; i < projection2.length; i++) {
+                 const targetIndex = startIndex2 + i;
+                if (targetIndex < ageAxisLength && (minStartingAge + targetIndex) <= params2.retirementAge) {
+                    finalData2[targetIndex] = projection2[i];
+                }
+             }
+
+            comparisonChart.data.labels = Array.from({ length: ageAxisLength }, (_, i) => `${minStartingAge + i}`);
+            comparisonChart.data.datasets[0].data = finalData1;
+            comparisonChart.data.datasets[0].label = params1.name;
+            comparisonChart.data.datasets[1].data = finalData2;
+            comparisonChart.data.datasets[1].label = params2.name;
+
+            comparisonChart.update();
+        }
+
+        // === Event Listeners ===
+        function addEventListeners() {
+            [elements.plan1, elements.plan2].forEach((planElements) => {
+                 Object.values(planElements).forEach(el => {
+                     if (el instanceof HTMLElement && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
+                         const eventType = (el.tagName === 'SELECT') ? 'change' : 'input';
+                         el.addEventListener(eventType, updateChart);
+                         if (el.type === 'number' || el.type === 'text') {
+                              el.addEventListener('change', updateChart);
+                         }
+                     }
+                 });
+            });
+        }
+
+        // === Initialization ===
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeChart();
+            updateChart();
+            addEventListeners();
+        });
+
+    </script>
+</body>
+</html>
